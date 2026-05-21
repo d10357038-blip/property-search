@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物件搜尋系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1c1917;--ink2:#44403c;--ink3:#78716c;
+  --paper:#faf9f7;--paper2:#f5f3ef;--paper3:#ede9e4;
+  --accent:#2d5a3d;--accent-h:#1e4029;
+  --green:#166534;--green-l:#dcfce7;
+  --gold:#92600a;--gold-l:#fef3c7;
+  --blue:#1e3a5f;--blue-l:#dbeafe;
+  --red:#991b1b;--red-l:#fee2e2;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
+  --shadow:0 4px 16px rgba(0,0,0,.10);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.14);
+  --r:12px;--r-lg:18px;--r-xl:24px;
+}
+html{scroll-behavior:smooth}
+body{font-family:"Noto Sans TC",sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+
+/* TOPBAR */
+.topbar{background:var(--accent);padding:0 1.5rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+.tb-brand{display:flex;align-items:center;gap:12px}
+.tb-icon{width:38px;height:38px;border-radius:9px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tb-title{font-size:17px;font-weight:700;color:#fff;font-family:"Noto Serif TC",serif;letter-spacing:.04em}
+.tb-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px}
+.tb-badge{background:rgba(255,255,255,.18);color:#fff;border-radius:99px;padding:4px 14px;font-size:13px;font-weight:500;border:1px solid rgba(255,255,255,.25);white-space:nowrap}
+
+/* WRAP */
+.wrap{max-width:1000px;margin:0 auto;padding:1.75rem 1.25rem 5rem}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.75rem}
+.stat{background:#fff;border:1px solid var(--paper3);border-radius:var(--r-lg);padding:18px 14px;text-align:center;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;cursor:default}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-icon{font-size:26px;margin-bottom:6px;line-height:1}
+.stat-num{font-size:30px;font-weight:900;color:var(--accent);font-family:"Noto Serif TC",serif;line-height:1}
+.stat-label{font-size:12px;color:var(--ink3);margin-top:4px;font-weight:500}
+
+/* SEARCH CARD */
+.search-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--r-xl);padding:1.75rem;box-shadow:var(--shadow);margin-bottom:1.5rem}
+.sec-title{font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px}
+.sec-title::before{content:"";width:4px;height:16px;background:var(--accent);border-radius:2px;display:inline-block}
+
+/* ── 關鍵字搜尋 ── */
+.kw-section{margin-bottom:1.5rem}
+.kw-wrap{display:flex;gap:10px}
+.kw-input{
+  flex:1;height:56px;padding:0 18px;
+  font-size:16px;font-family:"Noto Sans TC",sans-serif;
+  border:2px solid var(--paper3);border-radius:var(--r-lg);
+  background:var(--paper2);color:var(--ink);
+  transition:border .2s,background .2s;
+}
+.kw-input:focus{outline:none;border-color:var(--accent);background:#fff}
+.kw-input::placeholder{color:var(--ink3)}
+.kw-btn{
+  height:56px;padding:0 22px;
+  background:var(--accent);color:#fff;border:none;
+  border-radius:var(--r-lg);cursor:pointer;
+  font-size:15px;font-weight:700;font-family:"Noto Sans TC",sans-serif;
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+  transition:background .2s,transform .1s;
+  box-shadow:0 3px 12px rgba(45,90,61,.3);
+}
+.kw-btn:hover{background:var(--accent-h)}
+.kw-btn:active{transform:scale(.97)}
+.kw-hint{font-size:12px;color:var(--ink3);margin-top:7px;line-height:1.6}
+.kw-hint b{color:var(--accent)}
+
+.divider{height:1px;background:var(--paper3);margin:1.5rem 0;position:relative}
+.divider span{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:0 12px;font-size:12px;color:var(--ink3);font-weight:600;white-space:nowrap}
+
+/* ── 進階篩選 ── */
+.adv-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;padding:10px 14px;border-radius:var(--r);
+  background:var(--paper2);border:1px solid var(--paper3);
+  transition:background .15s;margin-bottom:0;
+}
+.adv-toggle:hover{background:var(--paper3)}
+.adv-toggle-label{font-size:14px;font-weight:700;color:var(--ink2);display:flex;align-items:center;gap:8px}
+.adv-arrow{font-size:16px;transition:transform .25s;color:var(--ink3)}
+.adv-arrow.open{transform:rotate(180deg)}
+.adv-body{overflow:hidden;transition:max-height .3s ease,opacity .3s;max-height:0;opacity:0}
+.adv-body.open{max-height:800px;opacity:1}
+.adv-inner{padding-top:1.25rem}
+
+/* 篩選格 */
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.filter-full{grid-column:1/-1}
+.fb{display:flex;flex-direction:column;gap:6px}
+.fl{font-size:13px;font-weight:700;color:var(--ink2);display:flex;align-items:center;gap:5px}
+.fl em{font-style:normal;font-size:15px}
+
+/* ── 區域複選 ── */
+.area-grid{display:flex;flex-wrap:wrap;gap:6px}
+.area-chip{
+  font-size:14px;padding:8px 14px;border-radius:99px;
+  border:2px solid var(--paper3);background:var(--paper2);color:var(--ink2);
+  cursor:pointer;transition:all .15s;font-weight:500;user-select:none;
+}
+.area-chip:hover{border-color:var(--accent);color:var(--accent);background:#e8f0ea}
+.area-chip.on{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:700}
+.area-clear{font-size:12px;color:var(--ink3);cursor:pointer;padding:6px 10px;border-radius:99px;border:1px dashed var(--paper3);background:transparent;font-family:"Noto Sans TC",sans-serif;transition:all .15s}
+.area-clear:hover{border-color:var(--red);color:var(--red)}
+
+/* Select / Input */
+select,input[type=number]{
+  width:100%;height:50px;padding:0 14px;
+  font-size:15px;font-family:"Noto Sans TC",sans-serif;
+  border:2px solid var(--paper3);border-radius:var(--r);
+  background:var(--paper2);color:var(--ink);
+  transition:border .2s,background .2s;
+}
+select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  cursor:pointer;padding-right:36px;
+}
+select:focus,input:focus{outline:none;border-color:var(--accent);background:#fff}
+input::placeholder{color:var(--ink3);font-size:13px}
+
+/* 範圍 */
+.range-row{display:grid;grid-template-columns:1fr 24px 1fr;align-items:center;gap:6px}
+.range-sep{text-align:center;font-size:18px;font-weight:700;color:var(--ink3)}
+
+/* 坪數 tabs */
+.size-tabs{display:flex;gap:6px;margin-bottom:8px}
+.size-tab{flex:1;height:36px;border:2px solid var(--paper3);border-radius:var(--r);background:var(--paper2);color:var(--ink3);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:"Noto Sans TC",sans-serif}
+.size-tab.on{border-color:var(--accent);background:var(--accent);color:#fff}
+
+/* 搜尋按鈕 */
+.btn-go{
+  width:100%;height:58px;
+  background:var(--accent);color:#fff;border:none;
+  border-radius:var(--r-lg);cursor:pointer;
+  font-size:19px;font-weight:700;font-family:"Noto Sans TC",sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:background .2s,transform .1s,box-shadow .2s;
+  box-shadow:0 4px 16px rgba(45,90,61,.3);
+  margin-top:1.25rem;letter-spacing:.04em;
+}
+.btn-go:hover{background:var(--accent-h);box-shadow:0 6px 20px rgba(45,90,61,.4)}
+.btn-go:active{transform:scale(.98)}
+.btn-clear{
+  width:100%;height:42px;background:transparent;color:var(--ink3);
+  border:1.5px solid var(--paper3);border-radius:var(--r);cursor:pointer;
+  font-size:13px;font-family:"Noto Sans TC",sans-serif;margin-top:8px;transition:all .15s;
+}
+.btn-clear:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+
+/* 快速標籤 */
+.quick-section{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--paper3)}
+.ql{font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.ql::before{content:"⚡";font-size:14px}
+.qtags{display:flex;flex-wrap:wrap;gap:7px}
+.qtag{font-size:14px;padding:8px 16px;border-radius:99px;border:2px solid var(--paper3);background:var(--paper2);color:var(--ink2);cursor:pointer;transition:all .15s;font-weight:500;white-space:nowrap}
+.qtag:hover{border-color:var(--accent);color:var(--accent);background:#e8f0ea}
+
+/* 作用篩選 */
+.active-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.af{font-size:12px;padding:4px 11px;background:#e8f0ea;color:var(--green);border-radius:99px;font-weight:600}
+
+/* RESULTS */
+.r-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 2px}
+.r-label{font-size:14px;color:var(--ink2);font-weight:500}
+.r-num{font-size:13px;font-weight:700;color:var(--accent);background:#e8f0ea;padding:4px 13px;border-radius:99px}
+
+/* CARDS */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1.5px solid var(--paper3);border-radius:var(--r-xl);box-shadow:var(--shadow-sm);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;animation:up .3s ease both}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:#c8c2ba}
+.card.top{border-color:var(--accent);border-width:2px}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card:nth-child(1){animation-delay:.03s}.card:nth-child(2){animation-delay:.07s}
+.card:nth-child(3){animation-delay:.11s}.card:nth-child(4){animation-delay:.15s}
+.card:nth-child(5){animation-delay:.19s}.card:nth-child(6){animation-delay:.23s}
+
+.c-stripe{height:5px}
+.c-stripe.田地{background:linear-gradient(90deg,#16a34a,#4ade80)}
+.c-stripe.建地{background:linear-gradient(90deg,#d97706,#fbbf24)}
+.c-stripe.房屋{background:linear-gradient(90deg,#2563eb,#60a5fa)}
+.card.top .c-stripe{background:linear-gradient(90deg,var(--accent),#4a8c5c)}
+
+.c-body{padding:1.25rem 1.4rem 1.1rem}
+.rec{display:inline-flex;align-items:center;gap:4px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:3px 11px;border-radius:99px;margin-bottom:10px}
+.c-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:10px}
+.c-name{font-size:17px;font-weight:700;color:var(--ink);line-height:1.4;font-family:"Noto Serif TC",serif}
+.c-price-wrap{text-align:right;flex-shrink:0}
+.c-price{font-size:22px;font-weight:900;color:var(--accent);font-family:"Noto Serif TC",serif;white-space:nowrap;line-height:1}
+.c-price.ask{font-size:15px;color:var(--ink3)}
+.c-psub{font-size:11px;color:var(--ink3);margin-top:2px}
+.c-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.ct{font-size:12px;padding:4px 11px;border-radius:99px;font-weight:600}
+.ct-田地{background:var(--green-l);color:var(--green)}
+.ct-建地{background:var(--gold-l);color:var(--gold)}
+.ct-房屋{background:var(--blue-l);color:var(--blue)}
+.ct-i{background:var(--paper3);color:var(--ink2)}
+.ct-ok{background:var(--green-l);color:var(--green)}
+.ct-xg{background:#fef9c3;color:#854d0e;border:1.5px solid #fde047;font-weight:700}
+.ct-wu{background:#fef3c7;color:#92400e;border:1.5px solid #fcd34d;font-weight:700}
+.ct-yy{background:#fce7f3;color:#9d174d;border:1.5px solid #f9a8d4;font-weight:700}
+.ct-xg{background:#fef9c3;color:#854d0e;border:1px solid #fde047}
+.ct-wu{background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe}
+.ct-yy{background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4}
+.c-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.c-box{background:var(--paper2);border-radius:9px;padding:9px 11px}
+.c-box-l{font-size:10px;color:var(--ink3);margin-bottom:2px;font-weight:500}
+.c-box-v{font-size:13px;color:var(--ink);font-weight:700}
+.c-note{font-size:12px;color:var(--ink3);background:var(--paper2);border-radius:7px;padding:7px 11px;margin-bottom:10px;border-left:3px solid #b8d4be;font-style:italic}
+.c-foot{display:flex;align-items:center;padding-top:10px;border-top:1px solid var(--paper3)}
+.c-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#4a8c5c);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-right:9px}
+.c-agent{font-size:13px;color:var(--ink2);font-weight:600}
+.c-agent-l{font-size:10px;color:var(--ink3)}
+
+/* 空白 */
+.home-empty{text-align:center;padding:3.5rem 1rem}
+.home-empty-emoji{font-size:60px;margin-bottom:14px;line-height:1}
+.home-empty h2{font-size:22px;font-weight:700;color:var(--ink2);font-family:"Noto Serif TC",serif;margin-bottom:8px}
+.home-empty p{font-size:15px;color:var(--ink3);line-height:1.8}
+.no-result{text-align:center;padding:3rem 1rem}
+.no-result-emoji{font-size:44px;margin-bottom:10px}
+.no-result h3{font-size:18px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.no-result p{font-size:14px;color:var(--ink3)}
+
+@media(max-width:640px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .filter-grid{grid-template-columns:1fr}
+  .filter-full{grid-column:auto}
+  .c-grid{grid-template-columns:repeat(2,1fr)}
+  .c-head{flex-direction:column;gap:6px}
+  .c-price-wrap{text-align:left}
+  .kw-wrap{flex-direction:column}
+  .kw-btn{width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-brand">
+    <div class="tb-icon">
+      <svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div>
+      <div class="tb-title">物件智能搜尋</div>
+      <div class="tb-sub">彰化縣不動產 · 即時同步 Google Sheets</div>
+    </div>
+  </div>
+  <div class="tb-badge" id="top-badge">載入中...</div>
+</header>
+
+<main class="wrap">
+
+  <!-- 統計 -->
+  <div class="stats">
+    <div class="stat"><div class="stat-icon">🏘️</div><div class="stat-num" id="s-total">-</div><div class="stat-label">總物件數</div></div>
+    <div class="stat"><div class="stat-icon">🌾</div><div class="stat-num" id="s-land">-</div><div class="stat-label">田地</div></div>
+    <div class="stat"><div class="stat-icon">🏗️</div><div class="stat-num" id="s-build">-</div><div class="stat-label">建地</div></div>
+    <div class="stat"><div class="stat-icon">🏠</div><div class="stat-num" id="s-house">-</div><div class="stat-label">房屋</div></div>
+  </div>
+
+  <div class="search-card">
+
+    <!-- ① 關鍵字快速搜尋 -->
+    <div class="sec-title">關鍵字快速搜尋</div>
+    <div class="kw-section">
+      <div class="kw-wrap">
+        <input class="kw-input" id="kw-input" placeholder="輸入鄉鎮＋類型＋價格，例：北斗 透天 600-900萬　或　永靖 田地 500萬以下">
+        <button class="kw-btn" onclick="doKwSearch()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          搜尋
+        </button>
+      </div>
+      <div class="kw-hint">
+        支援：<b>區域</b>（北斗、溪州…）＋<b>類型</b>（透天、農地、建地…）＋<b>價格</b>（500-800萬 / 1000萬以下）＋<b>朝向</b>（朝南…）＋<b>地段</b>（崙美、永南…）
+      </div>
+    </div>
+
+    <div class="divider"><span>或使用進階篩選</span></div>
+
+    <!-- ② 進階篩選（收合） -->
+    <div class="adv-toggle" onclick="toggleAdv(this)">
+      <div class="adv-toggle-label">
+        <span>🎛️</span> 進階篩選條件
+        <span id="adv-active-count" style="font-size:11px;background:#e8f0ea;color:var(--green);border-radius:99px;padding:2px 8px;display:none"></span>
+      </div>
+      <span class="adv-arrow" id="adv-arrow">▼</span>
+    </div>
+
+    <div class="adv-body" id="adv-body">
+      <div class="adv-inner">
+        <div class="filter-grid">
+
+          <!-- 區域複選 -->
+          <div class="fb filter-full">
+            <div class="fl"><em>📍</em> 區域（可複選）</div>
+            <div class="area-grid" id="area-grid">
+              <button class="area-clear" onclick="clearAreas()">✕ 全部清除</button>
+            </div>
+          </div>
+
+          <!-- 類型 -->
+          <div class="fb">
+            <div class="fl"><em>🏷️</em> 物件類型</div>
+            <select id="f-type" onchange="onTypeChange()">
+              <option value="">全部類型</option>
+              <option value="田地">🌾 田地 / 農地</option>
+              <option value="建地">🏗️ 建地</option>
+              <option value="房屋">🏠 房屋 / 透天</option>
+            </select>
+          </div>
+
+          <!-- 朝向 -->
+          <div class="fb">
+            <div class="fl"><em>🧭</em> 朝向</div>
+            <select id="f-dir">
+              <option value="">不限朝向</option>
+              <option value="南">朝南</option><option value="北">朝北</option>
+              <option value="東">朝東</option><option value="西">朝西</option>
+              <option value="東南">朝東南</option><option value="西南">朝西南</option>
+              <option value="東北">朝東北</option><option value="西北">朝西北</option>
+            </select>
+          </div>
+
+          <!-- 路寬 -->
+          <div class="fb">
+            <div class="fl"><em>🛣️</em> 路寬（至少幾米）</div>
+            <select id="f-road">
+              <option value="0">不限路寬</option>
+              <option value="3">3 米以上</option><option value="4">4 米以上</option>
+              <option value="6">6 米以上</option><option value="8">8 米以上</option>
+              <option value="10">10 米以上</option><option value="12">12 米以上</option>
+            </select>
+          </div>
+
+          <!-- 空 -->
+          <div class="fb"></div>
+
+          <!-- 總價 -->
+          <div class="fb filter-full">
+            <div class="fl"><em>💰</em> 總價範圍（萬元）</div>
+            <div class="range-row">
+              <input type="number" id="f-pmin" placeholder="最低  例：500" min="0" step="50">
+              <div class="range-sep">～</div>
+              <input type="number" id="f-pmax" placeholder="最高  例：1000" min="0" step="50">
+            </div>
+          </div>
+
+          <!-- 坪數 -->
+          <div class="fb filter-full">
+            <div class="fl"><em>📐</em> 坪數 / 面積</div>
+            <div class="size-tabs">
+              <button class="size-tab on" onclick="setSizeUnit('ping',this)">坪數（坪）</button>
+              <button class="size-tab" onclick="setSizeUnit('fen',this)">分數（台分/分）</button>
+              <button class="size-tab" onclick="setSizeUnit('none',this)">不限坪數</button>
+            </div>
+            <div id="size-ping-row" class="range-row">
+              <input type="number" id="f-ping-min" placeholder="最小  例：20" min="0" step="5">
+              <div class="range-sep">～</div>
+              <input type="number" id="f-ping-max" placeholder="最大  例：100" min="0" step="5">
+            </div>
+            <div id="size-fen-row" class="range-row" style="display:none">
+              <input type="number" id="f-fen-min" placeholder="最小  例：1" min="0" step="0.5">
+              <div class="range-sep">～</div>
+              <input type="number" id="f-fen-max" placeholder="最大  例：5" min="0" step="0.5">
+            </div>
+          </div>
+
+          <!-- 進階關鍵字 -->
+          <div class="fb filter-full">
+            <div class="fl"><em>🔤</em> 其他關鍵字（地段、備註）</div>
+            <input type="number" style="display:none"><!-- dummy to prevent form submit -->
+            <input type="text" class="kw-input" id="f-kw" placeholder="例：學區　車庫　崙美　高鐵　重劃…" style="height:50px;font-size:15px;border-radius:var(--r)">
+          </div>
+
+        </div>
+
+        <button class="btn-go" onclick="doAdvSearch()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          進階搜尋
+        </button>
+        <button class="btn-clear" onclick="clearAdv()">✕ 清除進階條件</button>
+      </div>
+    </div>
+
+    <!-- 快速標籤 -->
+    <div class="quick-section">
+      <div class="ql">快速選擇</div>
+      <div class="qtags">
+        <span class="qtag" onclick="doKwSet('北斗 透天')">🏠 北斗透天</span>
+        <span class="qtag" onclick="doKwSet('北斗 田地')">🌾 北斗田地</span>
+        <span class="qtag" onclick="doKwSet('溪州 田地')">🌾 溪州田地</span>
+        <span class="qtag" onclick="doKwSet('溪州 透天')">🏠 溪州房屋</span>
+        <span class="qtag" onclick="doKwSet('田中 建地')">🏗️ 田中建地</span>
+        <span class="qtag" onclick="doKwSet('田中 透天')">🏠 田中房屋</span>
+        <span class="qtag" onclick="doKwSet('埤頭 透天')">🏠 埤頭透天</span>
+        <span class="qtag" onclick="doKwSet('永靖 田地')">🌾 永靖田地</span>
+        <span class="qtag" onclick="doKwSet('員林 房屋')">🏠 員林房屋</span>
+        <span class="qtag" onclick="doKwSet('社頭')">📍 社頭</span>
+        <span class="qtag" onclick="doKwSet('二林')">📍 二林</span>
+        <span class="qtag" onclick="doKwSet('竹塘')">📍 竹塘</span>
+        <span class="qtag" onclick="doKwSet('埔心')">📍 埔心</span>
+        <span class="qtag" onclick="doKwSet('朝南')">🧭 朝南</span>
+        <span class="qtag" onclick="doKwSet('學區')">🎓 學區宅</span>
+        <span class="qtag" onclick="doKwSet('車庫')">🚗 有車庫</span>
+        <span class="qtag" onclick="doKwSet('別墅')">🏡 別墅</span>
+        <span class="qtag" onclick="doKwSet('重劃')">🏗️ 重劃區</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div id="results-wrap" style="display:none">
+    <div class="active-bar" id="af"></div>
+    <div class="r-bar">
+      <span class="r-label" id="r-label"></span>
+      <span class="r-num" id="r-num"></span>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <div id="home-empty" class="home-empty">
+    <div class="home-empty-emoji">🏡</div>
+    <h2>歡迎使用物件搜尋系統</h2>
+    <p>輸入關鍵字快速搜尋<br>或展開進階篩選條件<br>也可點選下方快速標籤</p>
+  </div>
+</main>
+
+<script>
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwxbun5dOCsSgM9ZkqvZXYa0thj9yUSJ6x1sWt1FrEBeCl-k13SyCx2BAnIPmpeRkKcQ/exec";
+let DB = [];
+
+function showLoading(){
+  const el = document.getElementById('home-empty');
+  el.style.display='block';
+  el.innerHTML='<div class="home-empty-emoji">⏳</div><h2>正在載入最新物件資料...</h2><p>請稍候</p>';
+}
+function showReady(){
+  const el = document.getElementById('home-empty');
+  el.style.display='block';
+  el.innerHTML='<div class="home-empty-emoji">🏡</div><h2>歡迎使用物件搜尋系統</h2><p>輸入關鍵字快速搜尋<br>或展開進階篩選條件<br>也可點選下方快速標籤</p>';
+}
+function showError(msg){
+  const el = document.getElementById('home-empty');
+  el.style.display='block';
+  el.innerHTML='<div class="home-empty-emoji">⚠️</div><h2>載入失敗</h2><p>'+msg+'<br><br><button onclick="loadData()" style="padding:10px 24px;background:#2d5a3d;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;">🔄 重新載入</button></p>';
+}
+
+function _sheetsCallback(raw){
+  try{
+    if(raw && raw.error){ showError('資料錯誤：'+raw.error); return; }
+    if(!Array.isArray(raw)){ showError('資料格式異常'); return; }
+    DB = raw.filter(x => x['案名'] && String(x['案名']).trim() !== '').map(x => {
+      const name   = String(x['案名']||'').trim();
+      const area   = String(x['區域']||'').trim();
+      const type   = String(x['類型']||'').trim();
+      const price  = parseFloat(String(x['總價(萬)']||'0').replace(/[^0-9.]/g,''))||0;
+      const s_ping = String(x['地坪/坪數']||'').trim();
+      const s_fen  = String(x['台分/分數']||'').trim();
+      const size   = s_fen ? s_fen+'台分' : (s_ping ? s_ping+'坪' : '');
+      const road   = String(x['路寬(米)']||'').trim();
+      const face   = String(x['面寬(米)']||'').trim();
+      const depth  = String(x['深度(米)']||'').trim();
+      const dir    = String(x['朝向']||'').trim();
+      const zone   = String(x['分區']||'').trim();
+      const layout = String(x['格局']||'').trim();
+      const floors = String(x['樓層']||'').trim();
+      const seg    = String(x['地段']||'').trim();
+      const agent  = String(x['承辦']||'').trim();
+      const note   = String(x['備註']||'').trim();
+      const xg_raw = x['現廣號'];
+      const yy_raw = x['鑰匙號'];
+      const wu_raw = String(x['廣告無編號']||'').trim().toUpperCase();
+      const xg = (xg_raw !== '' && xg_raw != null) ? parseInt(xg_raw)||null : null;
+      const yy = (yy_raw !== '' && yy_raw != null) ? parseInt(yy_raw)||null : null;
+      const wu = wu_raw === 'V' || wu_raw === '1' || wu_raw === 'TRUE' || wu_raw === '是';
+      const _ping = parseFloat(s_ping)||null;
+      const _fen  = parseFloat(s_fen)||null;
+      return {name,area,type,price,size,road,face,depth,dir,zone,
+              layout,floors,seg,agent,note,xg,yy,wu,_ping,_fen};
+    });
+    console.log('✅ 載入完成：', DB.length, '筆');
+    initStats();
+    showReady();
+  } catch(e){
+    showError('處理資料失敗：'+e.message);
+  }
+}
+
+function loadData(){
+  showLoading();
+  const old = document.getElementById('_jsonp_tag');
+  if(old) old.remove();
+  const s = document.createElement('script');
+  s.id = '_jsonp_tag';
+  s.src = SCRIPT_URL + '?callback=_sheetsCallback&t=' + Date.now();
+  s.onerror = () => showError('載入失敗，請重新整理頁面');
+  document.head.appendChild(s);
+  setTimeout(() => { if(DB.length===0) showError('載入逾時，請重新整理'); }, 15000);
+}
+
+
+// ── 所有區域 ──
+const ALL_AREAS = ['北斗','溪州','田中','田尾','埤頭','社頭','永靖','員林','埔心','二林','竹塘','二水','溪湖','大村','彰化','埔鹽','芳苑','台中'];
+let selectedAreas = new Set();
+let sizeUnit = 'ping';
+
+// ── 初始化 ──
+function init(){
+  // 統計
+  document.getElementById('s-total').textContent = DB.length;
+  document.getElementById('s-land').textContent  = DB.filter(x=>x.type==='田地').length;
+  document.getElementById('s-build').textContent = DB.filter(x=>x.type==='建地').length;
+  document.getElementById('s-house').textContent = DB.filter(x=>x.type==='房屋').length;
+  document.getElementById('top-badge').textContent = '共 '+DB.length+' 筆物件';
+
+  // 區域按鈕
+  const grid = document.getElementById('area-grid');
+  const clearBtn = grid.querySelector('.area-clear');
+  ALL_AREAS.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'area-chip';
+    btn.textContent = a;
+    btn.onclick = () => toggleArea(a, btn);
+    grid.insertBefore(btn, clearBtn);
+  });
+}
+
+function toggleArea(area, btn){
+  if(selectedAreas.has(area)){ selectedAreas.delete(area); btn.classList.remove('on'); }
+  else { selectedAreas.add(area); btn.classList.add('on'); }
+  updateAdvCount();
+}
+function clearAreas(){
+  selectedAreas.clear();
+  document.querySelectorAll('.area-chip.on').forEach(b=>b.classList.remove('on'));
+  updateAdvCount();
+}
+
+function updateAdvCount(){
+  const f = getAdvF();
+  const count = [selectedAreas.size>0, f.type, f.dir, f.road>0, f.pmin>0||f.pmax<Infinity,
+    (f.sUnit!=='none'&&(f.smin>0||f.smax<Infinity)), f.kw].filter(Boolean).length;
+  const el = document.getElementById('adv-active-count');
+  if(count){ el.textContent = count+'項條件'; el.style.display='inline'; }
+  else el.style.display='none';
+}
+
+// ── 收合進階 ──
+function toggleAdv(el){
+  const body = document.getElementById('adv-body');
+  const arrow = document.getElementById('adv-arrow');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+// ── 坪數切換 ──
+function setSizeUnit(u, btn){
+  sizeUnit = u;
+  document.querySelectorAll('.size-tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('size-ping-row').style.display = u==='ping'?'grid':'none';
+  document.getElementById('size-fen-row').style.display  = u==='fen' ?'grid':'none';
+}
+function onTypeChange(){
+  const t = document.getElementById('f-type').value;
+  if(t==='田地') setSizeUnit('fen', document.querySelectorAll('.size-tab')[1]);
+  else setSizeUnit('ping', document.querySelectorAll('.size-tab')[0]);
+  updateAdvCount();
+}
+
+// ── 取得進階條件 ──
+function getAdvF(){
+  return {
+    areas : [...selectedAreas],
+    type  : document.getElementById('f-type').value,
+    dir   : document.getElementById('f-dir').value,
+    road  : parseFloat(document.getElementById('f-road').value)||0,
+    pmin  : parseFloat(document.getElementById('f-pmin').value)||0,
+    pmax  : parseFloat(document.getElementById('f-pmax').value)||Infinity,
+    sUnit : sizeUnit,
+    smin  : sizeUnit==='ping'?(parseFloat(document.getElementById('f-ping-min').value)||0)
+          : sizeUnit==='fen' ?(parseFloat(document.getElementById('f-fen-min').value)||0):0,
+    smax  : sizeUnit==='ping'?(parseFloat(document.getElementById('f-ping-max').value)||Infinity)
+          : sizeUnit==='fen' ?(parseFloat(document.getElementById('f-fen-max').value)||Infinity):Infinity,
+    kw    : document.getElementById('f-kw').value.trim()
+  };
+}
+
+// ── 關鍵字解析 ──
+function parseKw(q){
+  const f = {areas:[], type:'', pmin:0, pmax:Infinity, dir:'', kws:[]};
+  // 區域（可能多個）
+  ALL_AREAS.forEach(a=>{ if(q.includes(a)) f.areas.push(a); });
+  // 類型
+  if(q.match(/田地|農地|農田|農保|農牧/)) f.type='田地';
+  else if(q.match(/建地/)) f.type='建地';
+  else if(q.match(/透天|別墅|華廈|套房|店面|平房|房屋|農舍/)) f.type='房屋';
+  // 價格
+  const rng = q.match(/(\d+)[~\-至到](\d+)\s*萬/);
+  const mx  = q.match(/(\d+)\s*萬(?:以內|以下|內)/);
+  const mn  = q.match(/(\d+)\s*萬(?:以上|起)/);
+  if(rng){ f.pmin=+rng[1]; f.pmax=+rng[2]; }
+  else if(mx) f.pmax=+mx[1];
+  else if(mn) f.pmin=+mn[1];
+  // 朝向
+  ['南','北','東','西','東南','西南','東北','西北'].forEach(d=>{
+    if(q.includes('朝'+d)||q.includes(d+'向')) f.dir=d;
+  });
+  // 其他關鍵字（地段/設施）
+  ['學區','車庫','雙車','交流道','重劃','高鐵','公園','市區','農舍','別墅','套房',
+   '永南','永北','崙美','港新','湳墘','湳西','東螺','新生','大新','三民','新民',
+   '東源','竹圍','嘉和','忠孝','仁豐','螺陽','文昌','後溪'].forEach(k=>{
+    if(q.includes(k)) f.kws.push(k);
+  });
+  return f;
+}
+
+// ── 嚴格比對（進階） ──
+function matchAdv(item, f){
+  if(f.areas.length && !f.areas.includes(item.area)) return false;
+  if(f.type && item.type !== f.type) return false;
+  if(f.dir){ if(!item.dir||!item.dir.includes(f.dir)) return false; }
+  if(f.road>0){ const rn=parseFloat(item.road); if(isNaN(rn)||rn<f.road) return false; }
+  if(item.price>0){
+    if(f.pmin>0 && item.price<f.pmin) return false;
+    if(f.pmax<Infinity && item.price>f.pmax) return false;
+  } else { if(f.pmin>0||f.pmax<Infinity) return false; }
+  if(f.sUnit!=='none'&&(f.smin>0||f.smax<Infinity)){
+    if(f.sUnit==='ping'){
+      const p=item._ping; if(p==null) return false;
+      if(f.smin>0&&p<f.smin) return false; if(f.smax<Infinity&&p>f.smax) return false;
+    } else {
+      const fn=item._fen; if(fn==null) return false;
+      if(f.smin>0&&fn<f.smin) return false; if(f.smax<Infinity&&fn>f.smax) return false;
+    }
+  }
+  if(f.kw){
+    const kws=f.kw.split(/[\s,，、]+/).filter(Boolean);
+    const adtags=[];
+        if(item.xg!=null) adtags.push('現廣','現廣'+item.xg+'號');
+        if(item.wu) adtags.push('廣告','無編號','廣告無編號');
+        if(item.yy!=null) adtags.push('鑰匙','鑰匙'+item.yy+'號');
+        const hay=[item.name,item.seg,item.note,item.zone,item.area,...adtags].join(' ');
+    if(!kws.every(k=>hay.includes(k))) return false;
+  }
+  return true;
+}
+
+// ── 關鍵字比對 ──
+function matchKw(item, f){
+  // 區域：任一符合
+  if(f.areas.length && !f.areas.includes(item.area)) return false;
+  // 類型
+  if(f.type && item.type!==f.type) return false;
+  // 朝向
+  if(f.dir){ if(!item.dir||!item.dir.includes(f.dir)) return false; }
+  // 價格
+  if(item.price>0){
+    if(f.pmin>0&&item.price<f.pmin) return false;
+    if(f.pmax<Infinity&&item.price>f.pmax) return false;
+  } else { if(f.pmin>0||f.pmax<Infinity) return false; }
+  // 其他關鍵字
+  if(f.kws.length){
+    const hay=[item.name,item.seg,item.note,item.zone].join(' ');
+    if(!f.kws.every(k=>hay.includes(k))) return false;
+  }
+  return true;
+}
+
+// ── 排序（條件符合度優先，同分則總價低的排前面）──
+function scoreItem(item, areas, type, pmin, pmax){
+  let s = 0;
+
+  // 區域符合
+  if(areas.length && areas.includes(item.area)) s += 100;
+
+  // 類型符合
+  if(type && item.type === type) s += 80;
+
+  // 價格完全在範圍內
+  if(item.price > 0 && pmax < Infinity){
+    if(item.price >= pmin && item.price <= pmax){
+      s += 50; // 完全符合預算加大分
+      // 同樣符合預算下，總價越低分數越高
+      // 用 (最高價 - 實際價) / 範圍 算出 0~20 分
+      const span = pmax - pmin || 1;
+      s += 20 * (pmax - item.price) / span;
+    } else if(item.price <= pmax * 1.1){
+      s += 10; // 超出預算10%以內給小分
+    }
+  } else if(item.price > 0 && pmin === 0 && pmax === Infinity){
+    // 沒設預算，總價越低排越前（最多加20分）
+    const maxPrice = 5000;
+    s += Math.max(0, 20 * (1 - item.price / maxPrice));
+  }
+
+  // 朝向符合
+  if(areas.length === 0 && type === '' && pmin === 0 && pmax === Infinity){
+    // 純關鍵字搜尋不特別加朝向分
+  }
+
+  return s;
+}
+
+// ── 主搜尋（關鍵字） ──
+function doKwSearch(){
+  const q = document.getElementById('kw-input').value.trim();
+  if(!q) return;
+  const f = parseKw(q);
+  const results = DB.filter(x=>matchKw(x,f))
+    .sort((a,b)=>scoreItem(b,f.areas,f.type,f.pmin,f.pmax)-scoreItem(a,f.areas,f.type,f.pmin,f.pmax))
+    .slice(0,15);
+  // 標籤
+  const tags=[];
+  if(f.areas.length) tags.push('📍 '+f.areas.join('、'));
+  if(f.type) tags.push('🏷️ '+f.type);
+  if(f.dir) tags.push('🧭 朝'+f.dir);
+  if(f.pmin||f.pmax<Infinity) tags.push('💰 '+(f.pmin||0)+'～'+(f.pmax<Infinity?f.pmax:'不限')+'萬');
+  if(f.kws.length) tags.push('🔤 '+f.kws.join('、'));
+  renderResults(results, tags, f.areas, f.type, f.pmin, f.pmax, '關鍵字搜尋');
+}
+
+// ── 進階搜尋 ──
+function doAdvSearch(){
+  const f = getAdvF();
+  const results = DB.filter(x=>matchAdv(x,f))
+    .sort((a,b)=>scoreItem(b,f.areas,f.type,f.pmin,f.pmax)-scoreItem(a,f.areas,f.type,f.pmin,f.pmax))
+    .slice(0,15);
+  const tags=[];
+  if(f.areas.length) tags.push('📍 '+f.areas.join('、'));
+  if(f.type) tags.push('🏷️ '+f.type);
+  if(f.dir) tags.push('🧭 朝'+f.dir);
+  if(f.road>0) tags.push('🛣️ 路寬≥'+f.road+'米');
+  if(f.pmin||f.pmax<Infinity) tags.push('💰 '+(f.pmin||0)+'～'+(f.pmax<Infinity?f.pmax:'不限')+'萬');
+  if(f.sUnit!=='none'&&(f.smin>0||f.smax<Infinity)){
+    const u=f.sUnit==='ping'?'坪':'台分';
+    tags.push('📐 '+(f.smin||0)+'～'+(f.smax<Infinity?f.smax:'不限')+u);
+  }
+  if(f.kw) tags.push('🔤 '+f.kw);
+  renderResults(results, tags, f.areas, f.type, f.pmin, f.pmax, '進階篩選');
+}
+
+// ── 快速標籤 ──
+function doKwSet(q){
+  document.getElementById('kw-input').value = q;
+  doKwSearch();
+}
+
+// ── 清除進階 ──
+function clearAdv(){
+  clearAreas();
+  ['f-type','f-dir'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-road').value='0';
+  ['f-pmin','f-pmax','f-ping-min','f-ping-max','f-fen-min','f-fen-max','f-kw']
+    .forEach(id=>document.getElementById(id).value='');
+  setSizeUnit('ping',document.querySelectorAll('.size-tab')[0]);
+  updateAdvCount();
+}
+
+// ── 渲染結果 ──
+function renderResults(results, tags, areas, type, pmin, pmax, mode){
+  document.getElementById('home-empty').style.display='none';
+  document.getElementById('results-wrap').style.display='block';
+  document.getElementById('af').innerHTML = tags.map(t=>`<span class="af">${t}</span>`).join('');
+  const label = (areas.length?areas.join('、')+' ':''+(type?type+' ':''))+'搜尋結果';
+  document.getElementById('r-label').textContent = label;
+  document.getElementById('r-num').textContent = '找到 '+results.length+' 筆';
+  document.getElementById('results-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+
+  const el = document.getElementById('cards');
+  if(!results.length){
+    el.innerHTML=`<div class="no-result"><div class="no-result-emoji">🔍</div><h3>找不到符合條件的物件</h3><p>請嘗試放寬預算範圍<br>或減少篩選條件</p></div>`;
+    return;
+  }
+  el.innerHTML = results.map((item,i)=>{
+    const isTop=i===0;
+    const pd=item.price>0?item.price.toLocaleString()+'萬':'洽業務';
+    const inBudget=pmax<Infinity&&item.price>0&&item.price>=pmin&&item.price<=pmax;
+    const unitNote=item.note&&item.note.match(/每[^\s,，。、]+/)?item.note.match(/每[^\s,，。、]+/)[0]:'';
+    const infos=[
+      item.size  ?{l:'面積',v:item.size}:null,
+      item.road  ?{l:'路寬',v:item.road+(!isNaN(parseFloat(item.road))&&!String(item.road).includes('米')?'米':'')}:null,
+      item.face  ?{l:'面寬',v:item.face+(!isNaN(parseFloat(item.face))&&!String(item.face).includes('米')?'米':'')}:null,
+      item.dir   ?{l:'朝向',v:'朝'+item.dir}:null,
+      item.zone  ?{l:'分區',v:item.zone}:null,
+      item.layout?{l:'格局',v:item.layout}:null,
+      item.floors?{l:'樓層',v:item.floors}:null,
+    ].filter(Boolean).slice(0,6);
+    return `<div class="card${isTop?' top':''}">
+      <div class="c-stripe ${item.type}"></div>
+      <div class="c-body">
+        ${isTop?'<div class="rec">⭐ 最推薦物件</div>':''}
+        <div class="c-head">
+          <div class="c-name">${item.name}</div>
+          <div class="c-price-wrap">
+            <div class="c-price${item.price===0?' ask':''}">${pd}</div>
+            ${unitNote?`<div class="c-psub">${unitNote}</div>`:''}
+          </div>
+        </div>
+        <div class="c-tags">
+          <span class="ct ct-${item.type}">${item.type}</span>
+          <span class="ct ct-i">📍 ${item.area}</span>
+          ${item.seg?`<span class="ct ct-i">${item.seg}</span>`:''}
+          ${item.xg!=null?`<span class="ct ct-xg">📢 現廣 ${item.xg}號</span>`:''}
+          ${item.wu?'<span class="ct ct-wu">📢 廣告無編號</span>':''}
+          ${item.yy!=null?`<span class="ct ct-yy">🔑 鑰匙 ${item.yy}號</span>`:''}
+          ${item.dir?`<span class="ct ct-i">朝${item.dir}</span>`:''}
+          ${inBudget?'<span class="ct ct-ok">✅ 符合預算</span>':''}
+        </div>
+        ${infos.length?`<div class="c-grid">${infos.map(x=>`<div class="c-box"><div class="c-box-l">${x.l}</div><div class="c-box-v">${x.v}</div></div>`).join('')}</div>`:''}
+        ${item.note?`<div class="c-note">📋 ${item.note}</div>`:''}
+        <div class="c-foot">
+          <div class="c-av">${item.agent?item.agent.charAt(0):'?'}</div>
+          <div><div class="c-agent">${item.agent||''}</div><div class="c-agent-l">承辦業務</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Enter 觸發
+document.getElementById('kw-input').addEventListener('keydown',e=>{if(e.key==='Enter')doKwSearch()});
+document.getElementById('f-kw').addEventListener('keydown',e=>{if(e.key==='Enter')doAdvSearch()});
+// 進階條件變動時更新計數
+['f-type','f-dir','f-road','f-pmin','f-pmax','f-ping-min','f-ping-max','f-fen-min','f-fen-max','f-kw']
+  .forEach(id=>document.getElementById(id).addEventListener('change',updateAdvCount));
+
+loadData();
+</script>
+</body>
+</html>
