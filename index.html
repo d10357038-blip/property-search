@@ -489,7 +489,7 @@ function _sheetsCallback(raw){
               layout,floors,seg,agent,note,xg,yy,wu,_ping,_fen};
     });
     console.log('✅ 載入完成：', DB.length, '筆');
-    initStats();
+    init();
     showReady();
   } catch(e){
     showError('處理資料失敗：'+e.message);
